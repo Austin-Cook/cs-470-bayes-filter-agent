@@ -407,7 +407,7 @@ public class theRobot extends JFrame {
     // Note: sonars is a bit string with four characters, specifying the sonar reading in the direction of North, South, East, and West
     //       For example, the sonar string 1001, specifies that the sonars found a wall in the North and West directions, but not in the South and East directions
     void updateProbabilities(int action, String sonars) {
-        // your code
+        probs = BayesFilter.filter(probs, action, sonars);
 
         myMaps.updateProbs(probs); // call this function after updating your probabilities so that the
                                    //  new probabilities will show up in the probability map on the GUI
