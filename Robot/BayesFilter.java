@@ -1,12 +1,13 @@
 /**
  * Create an instance of this class each time you recompute probs
- * NOTE: 
- * - Probs are stored as (col, row) AKA (x, y) (THIS WILL MESS YOU UP)
+ * NOTES: 
+ * - Probs are stored as (col, row) AKA (x, y)
  * - x moves right, y moves down
  */
 public class BayesFilter {
     private final World world;
     private final double[][] oldProbs;
+    private double[][] newProbs;
     private final double moveProb;
     private final double sensorAccuracy;
 
@@ -25,22 +26,19 @@ public class BayesFilter {
         this.sonars = sonars;
     }
     
-    public double[][] filter() {
-        assert(oldProbs.length > 0 && oldProbs[0].length > 0);
-        
+    public double[][] filter() {        
         int width = oldProbs[0].length;
         int height = oldProbs.length;
-        double[][] newProbs = new double[width][height];
-
+        newProbs = new double[width][height];
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 // System.out.println("col: " + col + ", row: " + row + ": " + oldProbs[col][row]);
                 newProbs[x][y] = transitionModel(x, y);
+                newProbs[x][y] = sensorModel(x, y);
             }
         }
 
         normalize(newProbs);
-        
         return newProbs;
     }
 
@@ -77,8 +75,7 @@ public class BayesFilter {
                         probFromAdj += moveProb;
                     }
                 } else {
-                    // going to wrong space or staying but need to go
-                    // P(accidently moves into it)
+                    // going to wrong space or staying but need to go: P(accidently moves into it)
                     probFromAdj = ((1 - moveProb) / 4);
                 }
             }
@@ -91,9 +88,20 @@ public class BayesFilter {
         return prob;
     }
 
-    private static double sensorModel() {
-        // TODO
-        return 1.0;
+    private double sensorModel(final int toX, final int toY) {
+        double numMatching = 0;
+        for (int i = 0; i < 4; i++) {
+            int newX = toX + xOffsets[i];
+            int newY = toY + yOffsets[i];
+            boolean isWallSensed = sonars.charAt(i) == '1';
+            boolean isWallSeenInMap = isWall(newX, newY);
+            if (isWallSensed == isWallSeenInMap) {
+                numMatching += 1;
+            }
+        }
+
+        double evidenceProb = (1 - sensorAccuracy) + numMatching * (sensorAccuracy / 4);
+        return evidenceProb * newProbs[toX][toY];
     }
 
     private static void normalize(double[][] arr) {
