@@ -9,6 +9,10 @@ import java.math.*;
 import java.text.*;
 
 public class World {
+    public static final int EMPTY = 0;
+    public static final int WALL = 1;
+    public static final int STAIRWELL = 2;
+    public static final int GOAL = 3;
     int width, height;  // the number of grid squares in the x and y directions
     int[][] grid;       // will store the map of the world.  0: empty square; 1: wall; 2: stairwell; 3: goal
 
