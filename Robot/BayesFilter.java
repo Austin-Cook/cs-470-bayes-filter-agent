@@ -1,5 +1,8 @@
 /**
  * Create an instance of this class each time you recompute probs
+ * NOTE: 
+ * - Probs are stored as (col, row) AKA (x, y) (THIS WILL MESS YOU UP)
+ * - x moves right, y moves down
  */
 public class BayesFilter {
     private final World world;
@@ -10,8 +13,8 @@ public class BayesFilter {
     private final int action;
     private final String sonars;
     // [north, south, east, west, stay] DO NOT MODIFY
-    private final int[] rowOffsets = { -1, 1, 0, 0, 0 };
-    private final int[] colOffsets = { 0, 0, 1, -1, 0 };
+    private final int[] xOffsets = { 0, 0, 1, -1, 0 };
+    private final int[] yOffsets = { -1, 1, 0, 0, 0 };
     
     public BayesFilter(final World world, final double[][] oldProbs, final double moveProb, final double sensorAccuracy, final int action, final String sonars) {
         this.world = world;
@@ -25,14 +28,14 @@ public class BayesFilter {
     public double[][] filter() {
         assert(oldProbs.length > 0 && oldProbs[0].length > 0);
         
-        int numRows = oldProbs.length;
-        int numCols = oldProbs[0].length;
-        double[][] newProbs = new double[numRows][numCols];
+        int width = oldProbs[0].length;
+        int height = oldProbs.length;
+        double[][] newProbs = new double[width][height];
 
-        for (int i = 0; i < numRows; i++) {
-            for (int j = 0; j < numCols; j++) {
-                // System.out.println("i: " + i + ", j: " + j + ": " + oldProbs[i][j]);
-                newProbs[i][j] = transitionModel(i, j);
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                // System.out.println("col: " + col + ", row: " + row + ": " + oldProbs[col][row]);
+                newProbs[x][y] = transitionModel(x, y);
             }
         }
 
@@ -44,41 +47,44 @@ public class BayesFilter {
     /**
      * Runs the transition model for transitioning INTO a given square
      */
-    private double transitionModel(final int toRow, final int toCol) {
+    private double transitionModel(final int toX, final int toY) {
         double prob = 0.0;
-        for (int i = 0; i < rowOffsets.length; i++) { // visit up, down, right, left, stay
-            int fromRow = toRow + rowOffsets[i];
-            int fromCol = toCol + colOffsets[i];
+        for (int i = 0; i < xOffsets.length; i++) { // visit up, down, right, left, stay
+            int fromX = toX + xOffsets[i];
+            int fromY = toY + yOffsets[i];
             double probFromAdj = 0;
 
-            if (isWall(fromRow, fromCol) || isStair(fromRow, fromCol) || isWall(toRow, toCol)) {
+            if (isWall(fromX, fromY) || isStair(fromX, fromY) || isWall(toX, toY)) {
                 // from wall/stair OR to wall
                 continue;
             }
 
-            if (actionLeadsFromSquareToToSquare(fromRow, fromCol, toRow, toCol)) {
+            if (actionLeadsFromSquareToToSquare(fromX, fromY, toX, toY)) {
                 // action leads to the space being evaluated
                 if (action == theRobot.STAY) {
                     // staying: P(moves correctly) + P(moves incorrectly and bumps off wall back to it)
-                    probFromAdj = moveProb + (numAdjacentWalls(fromRow, fromCol) * ((1 - moveProb) / 4));
+                    probFromAdj = moveProb + (numAdjacentWalls(fromX, fromY) * ((1 - moveProb) / 4));
                 } else {
                     // moving: P(moves corractly) + P(accidently moves into it)
                     probFromAdj = moveProb + ((1 - moveProb) / 4);
                 }
             } else {
                 // action doesn't lead the space being evaluated
-                if (action != theRobot.STAY && isSameSquare(fromRow, fromCol, toRow, toCol)) {
-                    // going but need to stay: P(moves incorrectly and bumps off wall back to it)
-                    probFromAdj = numAdjacentWalls(fromRow, fromCol) * ((1 - moveProb) / 4);
+                if (action != theRobot.STAY && isSameSquare(fromX, fromY, toX, toY)) {
+                    // going but need to stay: P(moves incorrectly and bumps off wall back to it) + (if moves into wall, it will stay)
+                    probFromAdj = numAdjacentWalls(fromX, fromY) * ((1 - moveProb) / 4);
+                    if (isDestAWall(fromX, fromY)) {
+                        probFromAdj += moveProb;
+                    }
                 } else {
-                    // going to wrong space or staying but need to go OR TODO OTHER CASES???
+                    // going to wrong space or staying but need to go
                     // P(accidently moves into it)
                     probFromAdj = ((1 - moveProb) / 4);
                 }
             }
 
             // multiply result of transition model by Bel(x_(t-1)) from the curr adj square
-            probFromAdj *= oldProbs[fromRow][fromCol];
+            probFromAdj *= oldProbs[fromX][fromY];
             prob += probFromAdj;
         }
 
@@ -104,39 +110,45 @@ public class BayesFilter {
         }
     }
 
-    // TODO change to private
-    public boolean isOutOfBounds(int row, int col) {
-        return (row < 0 || col < 0 || row >= world.height || col >= world.height);
+    private boolean isOutOfBounds(int x, int y) {
+        return (x < 0 || y < 0 || x >= world.width || y >= world.height);
     }
 
-    public boolean isWall(int row, int col) {
+    private boolean isWall(int x, int y) {
         // NOTE: We treat an out of bounds space as a wall
-        return isOutOfBounds(row, col) || world.grid[row][col] == World.WALL;
+        return isOutOfBounds(x, y) || world.grid[x][y] == World.WALL;
     }
 
-    private boolean isStair(int row, int col) {
+    private boolean isStair(int x, int y) {
         // NOTE: We treat an out of bounds space as a stair
-        return isOutOfBounds(row, col) || world.grid[row][col] == World.STAIRWELL;
+        return isOutOfBounds(x, y) || world.grid[x][y] == World.STAIRWELL;
     }
 
-    public boolean actionLeadsFromSquareToToSquare(int fromRow, int fromCol, int toRow, int toCol) {
-        int reachedRow = fromRow + rowOffsets[action];
-        int reachedCol = fromCol + colOffsets[action];
+    private boolean isDestAWall(int fromX, int fromY) {
+        int reachedX = fromX + xOffsets[action];
+        int reachedY = fromY + yOffsets[action];
 
-        return isSameSquare(reachedRow, reachedCol, toRow, toCol);
+        return isWall(reachedX, reachedY);
     }
 
-    public boolean isSameSquare(int rowA, int colA, int rowB, int colB) {
-        return rowA == rowB && colA == colB;
+    private boolean actionLeadsFromSquareToToSquare(int fromX, int fromY, int toX, int toY) {
+        int reachedX = fromX + xOffsets[action];
+        int reachedY = fromY + yOffsets[action];
+
+        return isSameSquare(reachedX, reachedY, toX, toY);
     }
 
-    public int numAdjacentWalls(int row, int col) {
+    private boolean isSameSquare(int xA, int yA, int xB, int yB) {
+        return xA == xB && yA == yB;
+    }
+
+    private int numAdjacentWalls(int x, int y) {
         int numBlocks = 0;
         for (int i = 0; i < 4; i++) {
-            int newRow = row + rowOffsets[i];
-            int newCol = col + colOffsets[i];
+            int newX = x + xOffsets[i];
+            int newY = y + yOffsets[i];
 
-            if (isWall(newRow, newCol)) {
+            if (isWall(newX, newY)) {
                 numBlocks += 1;
             }
         }
