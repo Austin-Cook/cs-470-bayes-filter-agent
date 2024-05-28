@@ -9,6 +9,10 @@ import java.math.*;
 import java.text.*;
 
 public class World {
+    public static final int EMPTY = 0;
+    public static final int WALL = 1;
+    public static final int STAIRWELL = 2;
+    public static final int GOAL = 3;
     int width, height;
     int[][] grid;
 
