@@ -10,7 +10,6 @@ public class BayesFilter {
     private double[][] newProbs;
     private final double moveProb;
     private final double sensorAccuracy;
-
     private final int action;
     private final String sonars;
     // [north, south, east, west, stay] DO NOT MODIFY
@@ -100,7 +99,14 @@ public class BayesFilter {
             }
         }
 
-        double evidenceProb = (1 - sensorAccuracy) + numMatching * (sensorAccuracy / 4);
+        // NOTE - this formula isn't perfect
+        // I came up with a table and derived equations to closely match the table
+        double evidenceProb;
+        if (sensorAccuracy >= 0.9 && numMatching < 4) {
+            evidenceProb =  (1 - sensorAccuracy) * (1.25 + (2 * numMatching));
+        } else {
+            evidenceProb = (1 - sensorAccuracy) + numMatching * (sensorAccuracy / 4);
+        }
         return evidenceProb * newProbs[toX][toY];
     }
 
