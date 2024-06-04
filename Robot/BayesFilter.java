@@ -12,9 +12,8 @@ public class BayesFilter {
     private final double sensorAccuracy;
     private final int action;
     private final String sonars;
-    // [north, south, east, west, stay] DO NOT MODIFY
-    private final int[] xOffsets = { 0, 0, 1, -1, 0 };
-    private final int[] yOffsets = { -1, 1, 0, 0, 0 };
+    private final int width;
+    private final int height;
     
     public BayesFilter(final World world, final double[][] oldProbs, final double moveProb, final double sensorAccuracy, final int action, final String sonars) {
         this.world = world;
@@ -23,11 +22,12 @@ public class BayesFilter {
         this.sensorAccuracy = sensorAccuracy;
         this.action = action;
         this.sonars = sonars;
+
+        width = oldProbs.length;
+        height = oldProbs[0].length;
     }
     
-    public double[][] filter() {        
-        int width = oldProbs[0].length;
-        int height = oldProbs.length;
+    public double[][] run() {
         newProbs = new double[width][height];
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
@@ -46,9 +46,9 @@ public class BayesFilter {
      */
     private double transitionModel(final int toX, final int toY) {
         double prob = 0.0;
-        for (int i = 0; i < xOffsets.length; i++) { // visit up, down, right, left, stay
-            int fromX = toX + xOffsets[i];
-            int fromY = toY + yOffsets[i];
+        for (int i = 0; i < Util.xOffsets.length; i++) { // visit up, down, right, left, stay
+            int fromX = toX + Util.xOffsets[i];
+            int fromY = toY + Util.yOffsets[i];
             double probFromAdj = 0;
 
             if (isWall(fromX, fromY) || isStair(fromX, fromY) || isWall(toX, toY)) {
@@ -90,8 +90,8 @@ public class BayesFilter {
     private double sensorModel(final int toX, final int toY) {
         double numMatching = 0;
         for (int i = 0; i < 4; i++) {
-            int newX = toX + xOffsets[i];
-            int newY = toY + yOffsets[i];
+            int newX = toX + Util.xOffsets[i];
+            int newY = toY + Util.yOffsets[i];
             boolean isWallSensed = sonars.charAt(i) == '1';
             boolean isWallSeenInMap = isWall(newX, newY);
             if (isWallSensed == isWallSeenInMap) {
@@ -139,15 +139,15 @@ public class BayesFilter {
     }
 
     private boolean isDestAWall(int fromX, int fromY) {
-        int reachedX = fromX + xOffsets[action];
-        int reachedY = fromY + yOffsets[action];
+        int reachedX = fromX + Util.xOffsets[action];
+        int reachedY = fromY + Util.yOffsets[action];
 
         return isWall(reachedX, reachedY);
     }
 
     private boolean actionLeadsFromSquareToToSquare(int fromX, int fromY, int toX, int toY) {
-        int reachedX = fromX + xOffsets[action];
-        int reachedY = fromY + yOffsets[action];
+        int reachedX = fromX + Util.xOffsets[action];
+        int reachedY = fromY + Util.yOffsets[action];
 
         return isSameSquare(reachedX, reachedY, toX, toY);
     }
@@ -159,8 +159,8 @@ public class BayesFilter {
     private int numAdjacentWalls(int x, int y) {
         int numBlocks = 0;
         for (int i = 0; i < 4; i++) {
-            int newX = x + xOffsets[i];
-            int newY = y + yOffsets[i];
+            int newX = x + Util.xOffsets[i];
+            int newY = y + Util.yOffsets[i];
 
             if (isWall(newX, newY)) {
                 numBlocks += 1;

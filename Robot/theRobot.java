@@ -402,28 +402,27 @@ public class theRobot extends JFrame {
         myMaps.updateProbs(probs);
     }
     
-    // TODO: update the probabilities of where the AI thinks it is based on the action selected and the new sonar readings
-    //       To do this, you should update the 2D-array "probs"
+    // update the probabilities of where the AI thinks it is based on the action selected and the new sonar readings
+    //       To do this, the 2D-array "probs" is updated
     // Note: sonars is a bit string with four characters, specifying the sonar reading in the direction of North, South, East, and West
     //       For example, the sonar string 1001, specifies that the sonars found a wall in the North and West directions, but not in the South and East directions
     void updateProbabilities(int action, String sonars) {
-        probs = new BayesFilter(mundo, probs, moveProb, sensorAccuracy, action, sonars).filter();
-
-        myMaps.updateProbs(probs); // call this function after updating your probabilities so that the
-                                   //  new probabilities will show up in the probability map on the GUI
+        probs = new BayesFilter(mundo, probs, moveProb, sensorAccuracy, action, sonars).run();
+        myMaps.updateProbs(probs);
     }
     
-    // This is the function you'd need to write to make the robot move using your AI;
-    // You do NOT need to write this function for this lab; it can remain as is
+    // This function makes the robot move using your AI;
     int automaticAction() {
-        
+        // TODO
+
+
         return STAY;  // default action for now
     }
     
     void doStuff() {
         int action;
         
-        //valueIteration();  // TODO: function you will write in Part II of the lab
+        // valueIteration(); // TODO THIS HERE
         initializeProbabilities();  // Initializes the location (probability) map
         
         while (true) {
@@ -439,7 +438,7 @@ public class theRobot extends JFrame {
                 String sonars = sin.readLine();
                 //System.out.println("Sonars: " + sonars);
             
-                updateProbabilities(action, sonars); // TODO: this function should update the probabilities of where the AI thinks it is
+                updateProbabilities(action, sonars);
                 
                 if (sonars.length() > 4) {  // check to see if the robot has reached its goal or fallen down stairs
                     if (sonars.charAt(4) == 'w') {
