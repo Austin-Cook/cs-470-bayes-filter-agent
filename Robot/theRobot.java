@@ -431,8 +431,7 @@ public class theRobot extends JFrame {
                 if (isManual)
                     action = getHumanAction();  // get the action selected by the user (from the keyboard)
                 else
-                    action = automaticAction(); // TODO: get the action selected by your AI;
-                                                // you'll need to write this function for part III
+                    action = automaticAction(); // get the action selected by your AI;
                 
                 sout.println(action); // send the action to the Server
                 
