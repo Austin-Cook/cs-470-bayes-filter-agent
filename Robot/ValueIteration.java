@@ -1,9 +1,9 @@
 public class ValueIteration {
-    private final double CONVERGENCE_FACTOR = 0.001;
-    private final double GAMMA = 0.98;
+    private final double CONVERGENCE_FACTOR = 0.01;
+    private final double GAMMA = 0.99;
     private final double GOAL_REWARD = 100;
-    private final double STAIRWLL_REWARD = -100;
-    private final double DEFAULT_REWARD = -1;
+    private final double STAIRWLL_REWARD = 0.0;
+    private final double DEFAULT_REWARD = 0;
     
     private final World world;
     private final int width;
@@ -11,6 +11,7 @@ public class ValueIteration {
     private final Util util;
     private double[][] oldVs;
     private double[][] newVs;
+    private double[][] rewards;
     private double iter;
 
     public ValueIteration(final World world, final double moveProb) {
@@ -21,16 +22,8 @@ public class ValueIteration {
     }
 
     public double[][] compute() {
-        newVs = initVs();
-
-        System.out.println("Initial values: ");
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                String numFormatted = String.format("%.2f", newVs[x][y]);
-                System.out.print(numFormatted + ",");
-            }
-            System.out.println("\n");
-        }
+        rewards = initRewards();
+        newVs = initRewards();
         
         iter = 0;
         double maxChange = Double.MAX_VALUE;
@@ -44,35 +37,22 @@ public class ValueIteration {
                     maxChange = Math.max(maxChange, Math.abs(oldVs[x][y] - newVs[x][y]));
                 }
             }
-            if (iter < 35) { // DELETEME
-                System.out.println("After " + iter + " iters: ");
-                for (int y = 0; y < height; y++) {
-                    for (int x = 0; x < width; x++) {
-                        String numFormatted = String.format("%.2f", newVs[x][y]);
-                        System.out.print(numFormatted + ",");
-                    }
-                    System.out.println();
-                }
-                System.out.println("maxChange: " + maxChange + "\n");
-            }// END DELETEME
         }
-
-        // System.out.println("Value iteration");
-        // for (int y = 0; y < height; y++) {
-        //     for (int x = 0; x < width; x++) {
-        //         String numFormatted = String.format("%.2f", newVs[x][y]);
-        //         System.out.print(numFormatted + ",");
-        //     }
-        //     System.out.println("\n");
-        // }
-        // System.out.println("Iter: " + iter);
-
 
         return newVs;
     }
 
     /**
      * Updates newVs[x][y] with the cooresponding value from the Bellman equation
+     * 
+     * Bellman Equation:
+     * R(s) + γ^iter * max_a∈A(s)∑_s′(P(s'|s,a)*U*(S'))
+     * - R(S): the value previously stored in newVs
+     * - γ: the gamma value
+     * - max_a∈A(s): the best value considering all possible actions
+     * - ∑_s′(P(s'|s,a)*U*(S')): for each possible child state given the state and action, 
+     *                           the probability of the child state times the understood 
+     *                           utility of the child state
      */
     private void bellman(final int fromX, final int fromY) {
         if (world.grid[fromX][fromY] != World.EMPTY)
@@ -95,33 +75,20 @@ public class ValueIteration {
             maxActionVal = Math.max(maxActionVal, actionVal);
         }
         
-        // Bellman Equation:
-        // R(s) + γ^iter * max_a∈A(s)∑_s′(P(s'|s,a)*U*(S'))
-        // - R(S): the value previously stored in newVs
-        // - γ: the gamma value
-        // - max_a∈A(s): the best value considering all possible actions
-        // - ∑_s′(P(s'|s,a)*U*(S')): for each possible child state given the state and action, 
-        //                           the probability of the child state times the understood 
-        //                           utility of the child state
-        newVs[fromX][fromY] += Math.pow(GAMMA, iter) * maxActionVal;
+        newVs[fromX][fromY] = rewards[fromX][fromY] + Math.pow(GAMMA, iter) * maxActionVal;
     }
 
-    /**
-     * Goal: great reward
-     * Stairwells: great loss
-     * Other: slight loss
-     */
-    private double[][] initVs() {
-        double[][] vs = new double[width][height];
+    private double[][] initRewards() {
+        double[][] arr = new double[width][height];
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
-                vs[x][y] = world.grid[x][y] == World.GOAL ? GOAL_REWARD
+                arr[x][y] = world.grid[x][y] == World.GOAL ? GOAL_REWARD
                         : world.grid[x][y] == World.STAIRWELL ? STAIRWLL_REWARD
                         : DEFAULT_REWARD;
             }
         }
 
-        return vs;
+        return arr;
     }
 
     private double[][] copy(double[][] arr) {

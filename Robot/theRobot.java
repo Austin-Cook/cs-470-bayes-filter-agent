@@ -413,29 +413,36 @@ public class theRobot extends JFrame {
     
     // This function makes the robot move using your AI;
     int automaticAction() {
-        int mostLikelyX = 0;
-        int mostLikelyY = 0;
+        // set belief of location to space with highest probability
+        int belX = 1;
+        int belY = 1;
         double maxProb = 0.0;
         for (int y = 0; y < mundo.height; y++) {
             for (int x = 0; x < mundo.width; x++) {
                 if (probs[x][y] > maxProb) {
                     maxProb = probs[x][y];
-                    mostLikelyX = x;
-                    mostLikelyY = y;
+                    belX = x;
+                    belY = y;
                 }
             }
         }
 
-        double bestActionVal = Double.MIN_VALUE;
+        // find best move from believed location
+        double high = Double.MIN_VALUE;
         int bestAction = STAY;
         for (int i = 0; i < Util.X_OFFSETS.length; i++) {
-            int newX = mostLikelyX + Util.X_OFFSETS[i];
-            int newY = mostLikelyY + Util.Y_OFFSETS[i];
+            int newX = belX + Util.X_OFFSETS[i];
+            int newY = belY + Util.Y_OFFSETS[i];
 
-            if (Vs[newX][newY] >= bestActionVal) {
+            if (Vs[newX][newY] >= high) {
                 bestAction = i;
-                bestActionVal = Vs[newX][newY];
+                high = Vs[newX][newY];
             }
+        }
+
+        // choose random action if staying
+        if (bestAction == STAY) {
+            bestAction = new Random().nextInt(4);
         }
 
         return bestAction;  // default action for now

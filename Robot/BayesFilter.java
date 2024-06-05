@@ -28,7 +28,6 @@ public class BayesFilter {
         newProbs = new double[width][height];
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
-                // System.out.println("col: " + col + ", row: " + row + ": " + oldProbs[col][row]);
                 newProbs[x][y] = transitionModel(x, y);
                 newProbs[x][y] = sensorModel(x, y);
             }
