@@ -412,6 +412,7 @@ public class theRobot extends JFrame {
     }
     
     // This function makes the robot move using your AI;
+    // This is the policy extraction based on precomputed value iteration values
     int automaticAction() {
         // set belief of location to space with highest probability
         int belX = 1;
