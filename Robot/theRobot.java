@@ -402,28 +402,57 @@ public class theRobot extends JFrame {
         myMaps.updateProbs(probs);
     }
     
-    // TODO: update the probabilities of where the AI thinks it is based on the action selected and the new sonar readings
-    //       To do this, you should update the 2D-array "probs"
+    // update the probabilities of where the AI thinks it is based on the action selected and the new sonar readings
+    //       To do this, the 2D-array "probs" is updated
     // Note: sonars is a bit string with four characters, specifying the sonar reading in the direction of North, South, East, and West
     //       For example, the sonar string 1001, specifies that the sonars found a wall in the North and West directions, but not in the South and East directions
     void updateProbabilities(int action, String sonars) {
-        probs = new BayesFilter(mundo, probs, moveProb, sensorAccuracy, action, sonars).filter();
-
-        myMaps.updateProbs(probs); // call this function after updating your probabilities so that the
-                                   //  new probabilities will show up in the probability map on the GUI
+        probs = new BayesFilter(mundo, probs, moveProb, sensorAccuracy, action, sonars).compute();
+        myMaps.updateProbs(probs);
     }
     
-    // This is the function you'd need to write to make the robot move using your AI;
-    // You do NOT need to write this function for this lab; it can remain as is
+    // This function makes the robot move using your AI;
+    // This is the policy extraction based on precomputed value iteration values
     int automaticAction() {
-        
-        return STAY;  // default action for now
+        // set belief of location to space with highest probability
+        int belX = 1;
+        int belY = 1;
+        double maxProb = 0.0;
+        for (int y = 0; y < mundo.height; y++) {
+            for (int x = 0; x < mundo.width; x++) {
+                if (probs[x][y] > maxProb) {
+                    maxProb = probs[x][y];
+                    belX = x;
+                    belY = y;
+                }
+            }
+        }
+
+        // find best move from believed location
+        double high = Double.MIN_VALUE;
+        int bestAction = STAY;
+        for (int i = 0; i < Util.X_OFFSETS.length; i++) {
+            int newX = belX + Util.X_OFFSETS[i];
+            int newY = belY + Util.Y_OFFSETS[i];
+
+            if (Vs[newX][newY] >= high) {
+                bestAction = i;
+                high = Vs[newX][newY];
+            }
+        }
+
+        // choose random action if staying
+        if (bestAction == STAY) {
+            bestAction = new Random().nextInt(4);
+        }
+
+        return bestAction;  // default action for now
     }
     
     void doStuff() {
         int action;
         
-        //valueIteration();  // TODO: function you will write in Part II of the lab
+        Vs = new ValueIteration(mundo, moveProb).compute();
         initializeProbabilities();  // Initializes the location (probability) map
         
         while (true) {
@@ -431,8 +460,7 @@ public class theRobot extends JFrame {
                 if (isManual)
                     action = getHumanAction();  // get the action selected by the user (from the keyboard)
                 else
-                    action = automaticAction(); // TODO: get the action selected by your AI;
-                                                // you'll need to write this function for part III
+                    action = automaticAction(); // get the action selected by your AI;
                 
                 sout.println(action); // send the action to the Server
                 
@@ -440,7 +468,7 @@ public class theRobot extends JFrame {
                 String sonars = sin.readLine();
                 //System.out.println("Sonars: " + sonars);
             
-                updateProbabilities(action, sonars); // TODO: this function should update the probabilities of where the AI thinks it is
+                updateProbabilities(action, sonars);
                 
                 if (sonars.length() > 4) {  // check to see if the robot has reached its goal or fallen down stairs
                     if (sonars.charAt(4) == 'w') {
