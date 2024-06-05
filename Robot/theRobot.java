@@ -407,22 +407,44 @@ public class theRobot extends JFrame {
     // Note: sonars is a bit string with four characters, specifying the sonar reading in the direction of North, South, East, and West
     //       For example, the sonar string 1001, specifies that the sonars found a wall in the North and West directions, but not in the South and East directions
     void updateProbabilities(int action, String sonars) {
-        probs = new BayesFilter(mundo, probs, moveProb, sensorAccuracy, action, sonars).run();
+        probs = new BayesFilter(mundo, probs, moveProb, sensorAccuracy, action, sonars).compute();
         myMaps.updateProbs(probs);
     }
     
     // This function makes the robot move using your AI;
     int automaticAction() {
-        // TODO
+        int mostLikelyX = 0;
+        int mostLikelyY = 0;
+        double maxProb = 0.0;
+        for (int y = 0; y < mundo.height; y++) {
+            for (int x = 0; x < mundo.width; x++) {
+                if (probs[x][y] > maxProb) {
+                    maxProb = probs[x][y];
+                    mostLikelyX = x;
+                    mostLikelyY = y;
+                }
+            }
+        }
 
+        double bestActionVal = Double.MIN_VALUE;
+        int bestAction = STAY;
+        for (int i = 0; i < Util.X_OFFSETS.length; i++) {
+            int newX = mostLikelyX + Util.X_OFFSETS[i];
+            int newY = mostLikelyY + Util.Y_OFFSETS[i];
 
-        return STAY;  // default action for now
+            if (Vs[newX][newY] >= bestActionVal) {
+                bestAction = i;
+                bestActionVal = Vs[newX][newY];
+            }
+        }
+
+        return bestAction;  // default action for now
     }
     
     void doStuff() {
         int action;
         
-        // valueIteration(); // TODO THIS HERE
+        Vs = new ValueIteration(mundo, moveProb).compute();
         initializeProbabilities();  // Initializes the location (probability) map
         
         while (true) {
